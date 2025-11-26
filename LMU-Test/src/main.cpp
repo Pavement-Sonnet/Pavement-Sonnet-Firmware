@@ -1,18 +1,28 @@
 #include <Arduino.h>
+#include "mqtt_config.h"
+#include "wifi_manager.h"
+#include "mqtt_client.h"
 
-// put function declarations here:
-int myFunction(int, int);
+static unsigned long lastPublish = 0;
 
 void setup() {
-  // put your setup code here, to run once:
-  int result = myFunction(2, 3);
+  Serial.begin(115200);
+  delay(100);
+  Serial.println("Starting ESP32 MQTT example");
+  wifi_connect();
+  mqtt_init();
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-}
+  mqtt_loop();
 
-// put function definitions here:
-int myFunction(int x, int y) {
-  return x + y;
+  unsigned long now = millis();
+  if (now - lastPublish > 5000) {
+    lastPublish = now;
+    char payload[64];
+    snprintf(payload, sizeof(payload), "hello %lu", now / 1000);
+    bool ok = mqtt_publish(MQTT_TOPIC_PUB, payload);
+    Serial.print("Published: "); Serial.print(payload);
+    Serial.print(" -> "); Serial.println(ok ? "OK" : "FAILED");
+  }
 }

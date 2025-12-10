@@ -10,15 +10,16 @@
 #include <TinyGPS.h>
 #include <HardwareSerial.h>
 
-// WiFi Libraries
-#include <WiFi.h>
-#include <HTTPClient.h>
-
 // BLE Headers
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
+
+// Module Headers
+#include "mqtt_config.h"
+#include "wifi_manager.h"
+#include "mqtt_client.h"
 
 // ==========================================
 //           功能開關 (Power Flags)
@@ -59,10 +60,8 @@ const uint64_t SLEEP_TIME_SEC   = 10; // Sleep for 10 seconds
 #define mpuIntPin 14
 #define buttonPin 0 // GPIO0 as button input
 
-// WiFi
-const char ssid[] = "JustWiFi_IoT";
-const char pwd[]  = "66966696";
-const char* serverUrl = "http://YOUR_SERVER_IP_OR_URL/api/data"; 
+
+static unsigned long lastPublish = 0;
 
 // 物件宣告
 HardwareSerial gpsSerial(2);
@@ -143,9 +142,8 @@ void setup() {
 
   // 2. WiFi Setup
   if (ENABLE_WIFI) {
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(ssid, pwd);
-    // Non-blocking wait to allow BLE to run first
+    wifi_connect();
+    mqtt_init();
   }
 
   // 3. Sensors Setup
@@ -171,10 +169,11 @@ unsigned long lastDebounceTime = 0;
 unsigned long debounceDelay = 50;
 
 void loop() {
+  mqtt_loop();
+
   // Deep Sleep Check
   if (millis() > RUN_TIME_MS) {
     Serial.println("Time's up! Sleep...");
-    if (ENABLE_WIFI) WiFi.disconnect(true);
     if (ENABLE_MPU) setupMPU_WOM_LowPower();
     
     
@@ -242,9 +241,67 @@ void loop() {
       airQuality = analogRead(mq135Pin);
     }
     
-    Serial.printf("[Sensors] Temp: %.2f | WiFi: %d | BLE: %s | Sound: %d | AirQuality: %d | GPS: %.6f, %.6f\n", 
-      temp, WiFi.status() == WL_CONNECTED, deviceConnected ? "CONN" : "WAIT", soundLevel, airQuality, latitude, longitude);
+    Serial.printf("[Sensors] Temp: %.2f | BLE: %s | Sound: %d | AirQuality: %d | GPS: %.6f, %.6f\n", 
+      temp, deviceConnected ? "CONN" : "WAIT", soundLevel, airQuality, latitude, longitude);
     lastPrint = millis();
+  }
+
+  unsigned long now = millis();
+  if (now - lastPublish > 5000) {
+    lastPublish = now;
+    char gpsBuf[256];
+    char accelFrag[128];
+    char accelPayload[256];
+    char sensorBuf[256];
+
+    // Fetch sensor data
+    float temp = 0;
+    int soundLevel = 0;
+    int airQuality = 0;
+    float latitude = 0.0, longitude = 0.0;
+    if(ENABLE_DS18B20) {
+        tempSensor.requestTemperatures();
+        temp = tempSensor.getTempCByIndex(0);
+    }
+    if(ENABLE_MPU) {
+      sensors_event_t a, g, tempEvent;
+      mpu.getEvent(&a, &g, &tempEvent);
+      snprintf(accelFrag, sizeof(accelFrag), "\"accel_x\":%.2f,\"accel_y\":%.2f,\"accel_z\":%.2f",
+        a.acceleration.x, a.acceleration.y, a.acceleration.z);
+    } else {
+      strcpy(accelFrag, "\"accel_x\":null,\"accel_y\":null,\"accel_z\":null");
+    }
+    if(ENABLE_GPS) {
+      while (gpsSerial.available() > 0) {
+        gps.encode(gpsSerial.read());
+      }
+      gps.f_get_position(&latitude, &longitude);
+    }
+    if (ENABLE_SOUND)
+    {
+      soundLevel = analogRead(soundPin);
+    }
+    if (ENABLE_MQ135)
+    {
+      airQuality = analogRead(mq135Pin);
+    }
+    // Prepare MQTT Payloads
+    snprintf(gpsBuf, sizeof(gpsBuf), "{\"latitude\":%.6f,\"longitude\":%.6f}", latitude, longitude);
+    snprintf(accelPayload, sizeof(accelPayload), "{%s}", accelFrag);
+    snprintf(sensorBuf, sizeof(sensorBuf), "{\"temperature\":%.2f,\"sound_level\":%d,\"air_quality\":%d}", 
+      temp, soundLevel, airQuality);
+
+    // Publish GPS, accel, and sensors to separate topics
+    bool ok1 = mqtt_publish(MQTT_TOPIC_GPS, gpsBuf);
+    bool ok2 = mqtt_publish(MQTT_TOPIC_ACCEL, accelPayload);
+    bool ok3 = mqtt_publish(MQTT_TOPIC_SENSORS, sensorBuf);
+
+    Serial.print("Published GPS -> "); Serial.print(MQTT_TOPIC_GPS); Serial.print(" : "); Serial.println(gpsBuf);
+    Serial.print("Publish result: "); Serial.println(ok1 ? "OK" : "FAILED");
+    Serial.print("Published Accel -> "); Serial.print(MQTT_TOPIC_ACCEL); Serial.print(" : "); Serial.println(accelPayload);
+    Serial.print("Publish result: "); Serial.println(ok2 ? "OK" : "FAILED");
+    Serial.print("Published Sensors -> "); Serial.print(MQTT_TOPIC_SENSORS); Serial.print(" : "); Serial.println(sensorBuf);
+    Serial.print("Publish result: "); Serial.println(ok3 ? "OK" : "FAILED");
   }
   
   

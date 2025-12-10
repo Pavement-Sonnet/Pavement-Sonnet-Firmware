@@ -18,5 +18,8 @@
 // Topics
 #define MQTT_TOPIC_SUB "test/esp32/in"
 #define MQTT_TOPIC_PUB "test/esp32/out"
+#define MQTT_TOPIC_GPS "sensors/gps"
+#define MQTT_TOPIC_ACCEL "sensors/accel"
+#define MQTT_TOPIC_SENSORS "sensors/data"
 
 #endif // MQTT_CONFIG_H

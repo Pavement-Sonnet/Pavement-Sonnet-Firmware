@@ -15,6 +15,9 @@ typedef struct struct_message {
 
 struct_message myData;
 
+uint8_t bike_break = 0;
+uint8_t bike_speed = 0;
+
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   Serial.print("Last Packet Send Status: ");
   Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Success" : "Fail");
@@ -51,12 +54,25 @@ void setup() {
 }
 
 void loop() {
-  strcpy(myData.msg, "Hello ESP32 Receiver!");
-  // Broadcast MAC address
-  uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-  esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
+  bike_break = random(0, 2); // Simulate brake status (0 or 1)
+  bike_speed = random(0, 51); // Simulate speed (0 to 50)
+  if (bike_break) {
+    snprintf(myData.msg, sizeof(myData.msg), "Brake ON");
+    // Broadcast MAC address
+    uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+    esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
 
-  Serial.println(result == ESP_OK ? "Sent!" : "Error");
+    Serial.println(result == ESP_OK ? "Sent!" : "Error");
+  } 
+  else if (bike_speed <= 15) {
+    snprintf(myData.msg, sizeof(myData.msg), "Bump! Slow down");
+    // Broadcast MAC address
+    uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+    esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
+
+    Serial.println(result == ESP_OK ? "Sent!" : "Error");
+  }
+  
   delay(2000);
 }
 

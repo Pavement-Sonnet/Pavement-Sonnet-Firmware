@@ -18,17 +18,28 @@ uint8_t mac[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
+// Timer variables for LCD clear
+unsigned long lastMessageTime = 0;
+const unsigned long LCD_CLEAR_TIME = 10000; // 10 seconds in milliseconds
+bool messageLcdActive = false;
+
 void lcd_setup() {
     lcd.begin();
     lcd.backlight();
 }
 
-void lcd_message() {
+void lcd_message(const char* message) {
     lcd.clear();
     lcd.setCursor(0, 0);
-    lcd.print("Rear bike connected:");
+    lcd.print("Bike connected:");
     lcd.setCursor(0, 1);
-    lcd.print("Crash Detected!");
+    lcd.print(message);
+}
+
+void lcd_message_clear() {
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Road Clear");
 }
 
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingDataPtr, int len) {
@@ -40,11 +51,12 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingDataPtr, int len) {
   }
   Serial.print(" - Message: ");
   Serial.println(incomingData.msg);
-
-
-
+  lcd_setup();
+  lcd_message(incomingData.msg);
   
-
+  // Record the time when message was displayed
+  lastMessageTime = millis();
+  messageLcdActive = true;
 }
 
 void setup() {
@@ -63,9 +75,17 @@ void setup() {
 
   // Register receive callback
   esp_now_register_recv_cb(OnDataRecv);
+  
+  // Initialize LCD with default message
+  lcd_setup();
+  lcd_message_clear();
 }
 
 void loop() {
-  // Nothing needed here; data is handled in callback
-
+  // Check if LCD message should be cleared
+  if (messageLcdActive && (millis() - lastMessageTime) >= LCD_CLEAR_TIME) {
+    lcd_message_clear();
+    messageLcdActive = false;
+    Serial.println("LCD displaying Road Clear after 10 seconds");
+  }
 }

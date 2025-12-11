@@ -11,5 +11,5 @@ void accel_get_mock_fragment(char* buf, size_t len) {
   t += 0.2f;
   // produce fragment without outer braces
   // ensure buffer length is sufficient (we expect < 128)
-  snprintf(buf, len, "\"accel\":{\"ax\":%.3f,\"ay\":%.3f,\"az\":%.3f}", ax, ay, az);
+  snprintf(buf, len, "\"accel_x\":%.2f,\"accel_y\":%.2f,\"accel_z\":%.2f", ax, ay, az);
 }

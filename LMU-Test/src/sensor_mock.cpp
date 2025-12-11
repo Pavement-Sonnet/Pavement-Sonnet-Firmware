@@ -14,7 +14,7 @@ void sensor_get_mock_json(char* buf, size_t len) {
   int sound = 60 + (int)(15.0f * sinf(t * 0.3f));
 
   // Simulate air quality (0-100, higher is worse)
-  int airquality = 40 + (int)(20.0f * sinf(t * 0.4f + 1.5f));
+  int air_quality = 40 + (int)(20.0f * sinf(t * 0.4f + 1.5f));
 
   t += 0.1f;
   count++;
@@ -22,6 +22,6 @@ void sensor_get_mock_json(char* buf, size_t len) {
   unsigned long ts = (unsigned long)time(NULL);
 
   snprintf(buf, len,
-           "{\"ts\":%lu,\"temp\":%.2f,\"sound\":%d,\"airquality\":%d}",
-           ts, temp, sound, airquality);
+           "{\"temperature\":%.2f,\"sound_level\":%d,\"air_quality\":%d}", 
+           temp, sound, air_quality);
 }

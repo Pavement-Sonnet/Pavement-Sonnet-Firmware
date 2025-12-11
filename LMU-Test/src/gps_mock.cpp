@@ -19,8 +19,5 @@ void gps_get_mock_json(char* buf, size_t len) {
   unsigned long ts = (unsigned long)t;
 
   // JSON payload
-  // Example: {"ts":169...,"lat":37.42,"lon":-122.08,"alt":10.0,"hdop":0.9,"sats":8}
-  snprintf(buf, len,
-           "{\"ts\":%lu,\"lat\":%.7f,\"lon\":%.7f,\"alt\":%.2f,\"hdop\":%.2f,\"sats\":%d}",
-           ts, lat, lon, alt, 0.9 + ((count%3)*0.1), 6 + (count%5));
+  snprintf(buf, len,"{\"latitude\":%.6f,\"longitude\":%.7f}", lat, lon);
 }

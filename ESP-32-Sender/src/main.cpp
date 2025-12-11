@@ -2,16 +2,7 @@
 // #include <Wire.h>
 // #include <LiquidCrystal_I2C.h>
 
-// LiquidCrystal_I2C lcd(0x27, 16, 2);
 
-// void setup() {
-//   lcd.begin();
-//   lcd.backlight();
-//   lcd.setCursor(0, 0);
-//   lcd.print("Hello ESP32!");
-//   lcd.setCursor(0, 1);
-//   lcd.print("Qapass LCD OK");
-// }
 
 // void loop() {}
 
@@ -44,26 +35,25 @@ void setup() {
   // Register callback
   esp_now_register_send_cb(OnDataSent);
 
-  // Define receiver MAC address
-  uint8_t broadcastAddress[] = {0x24, 0x6F, 0x28, 0xAB, 0xCD, 0xEF}; // Replace with receiver MAC
+  // Define broadcast MAC address (FF:FF:FF:FF:FF:FF)
+  uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
-  // Add peer
+  // Add broadcast peer
   esp_now_peer_info_t peerInfo = {};
   memcpy(peerInfo.peer_addr, broadcastAddress, 6);
   peerInfo.channel = 0;  
   peerInfo.encrypt = false;
 
-  //if (!esp_now_is_peer_exist(broadcastAddress)) {
-    if (esp_now_add_peer(&peerInfo) != ESP_OK) {
-      Serial.println("Failed to add peer");
-      return;
-    }
-  //}
+  if (esp_now_add_peer(&peerInfo) != ESP_OK) {
+    Serial.println("Failed to add broadcast peer");
+    return;
+  }
 }
 
 void loop() {
   strcpy(myData.msg, "Hello ESP32 Receiver!");
-  uint8_t broadcastAddress[] = {0x24, 0x6F, 0x28, 0xAB, 0xCD, 0xEF}; // Replace with receiver MAC
+  // Broadcast MAC address
+  uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
   esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
 
   Serial.println(result == ESP_OK ? "Sent!" : "Error");

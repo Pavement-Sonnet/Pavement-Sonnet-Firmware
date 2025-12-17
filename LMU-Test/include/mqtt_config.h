@@ -3,12 +3,12 @@
 #define MQTT_CONFIG_H
 
 // Fill these fields
-#define WIFI_SSID "JustWiFi_IoT"
-#define WIFI_PASS "66966696"
+#define WIFI_SSID "HalitPhone"
+#define WIFI_PASS "1123581321"
 
 // Broker can be your PC running Mosquitto (use PC IP) or a remote broker
-#define MQTT_BROKER_IP "1.1.1.1"
-#define MQTT_BROKER_PORT 1883
+#define MQTT_BROKER_IP "172.20.10.5"
+#define MQTT_BROKER_PORT 1884
 
 // Client ID and optional credentials (leave empty strings for no auth)
 #define MQTT_CLIENT_ID "esp32_client"

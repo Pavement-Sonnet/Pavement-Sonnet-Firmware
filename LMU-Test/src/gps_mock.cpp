@@ -3,8 +3,8 @@
 #include <time.h>
 
 void gps_get_mock_json(char* buf, size_t len) {
-  static double lat = 37.4219999; // starting lat
-  static double lon = -122.0840575; // starting lon
+  static double lat = 48.262798; // starting lat
+  static double lon = 11.668381; // starting lon
   static double alt = 10.0; // meters
   static int count = 0;
 

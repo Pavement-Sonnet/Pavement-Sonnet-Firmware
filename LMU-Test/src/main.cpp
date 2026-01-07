@@ -15,6 +15,7 @@
 #include "power_manager.h"
 #include "mpu_manager.h"
 #include "sensor_manager.h"
+#include "mock_data.h"
 
 // 全域變數
 static unsigned long lastPublish = 0;
@@ -117,8 +118,10 @@ void setup() {
   // 5. 感測器初始化
   sensors_init();
 
-  // 6. MPU 初始化
-  mpu_init();
+  // 6. MPU 初始化 (skip if using mock data to avoid I2C errors)
+  if (!USE_MOCK_DATA) {
+    mpu_init();
+  }
 }
 
 void loop() {
@@ -126,10 +129,18 @@ void loop() {
 
   // 連續收集加速度並即時檢查坑洞
   unsigned long now = millis();
-  if (ENABLE_MPU && (now - lastAccelSample >= ACCEL_SAMPLE_INTERVAL_MS)) {
+  if ((USE_MOCK_DATA || ENABLE_MPU) && (now - lastAccelSample >= ACCEL_SAMPLE_INTERVAL_MS)) {
     lastAccelSample = now;
     sensors_event_t a, g, tempEvent;
-    if (mpu_read_accel(&a, &g, &tempEvent)) {
+    bool readSuccess = false;
+    
+    if (USE_MOCK_DATA) {
+      readSuccess = mpu_read_accel_mock(&a, &g, &tempEvent);
+    } else if (ENABLE_MPU) {
+      readSuccess = mpu_read_accel(&a, &g, &tempEvent);
+    }
+    
+    if (readSuccess) {
       float magG = sqrtf(a.acceleration.x * a.acceleration.x +
                         a.acceleration.y * a.acceleration.y +
                         a.acceleration.z * a.acceleration.z) / 9.80665f; // 轉為 g 值
@@ -150,7 +161,7 @@ void loop() {
     Serial.println("Time's up! Sleep...");
 
     // 1. Rail 1 處理: 透過 I2C 指令進入低功耗模式
-    if (ENABLE_MPU) mpu_setup_wom_low_power();
+    if (!USE_MOCK_DATA && ENABLE_MPU) mpu_setup_wom_low_power();
     
     // 2. 切斷其他電源軌
     power_shutdown_rails();
@@ -197,7 +208,12 @@ void loop() {
     char potholeLonBuf[32];
 
     // 取最後一次加速度向量供觀察
-    if (ENABLE_MPU) {
+    if (USE_MOCK_DATA) {
+      sensors_event_t a, g, tempEvent;
+      mpu_read_accel_mock(&a, &g, &tempEvent);
+      snprintf(accelFrag, sizeof(accelFrag), "\"accel_x\":%.2f,\"accel_y\":%.2f,\"accel_z\":%.2f",
+        a.acceleration.x, a.acceleration.y, a.acceleration.z);
+    } else if (ENABLE_MPU) {
       sensors_event_t a, g, tempEvent;
       mpu_read_accel(&a, &g, &tempEvent);
       snprintf(accelFrag, sizeof(accelFrag), "\"accel_x\":%.2f,\"accel_y\":%.2f,\"accel_z\":%.2f",

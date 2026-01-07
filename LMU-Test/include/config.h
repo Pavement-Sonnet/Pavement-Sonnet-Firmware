@@ -12,6 +12,7 @@ const bool ENABLE_GPS      = true;
 const bool ENABLE_SOUND    = true; 
 const bool ENABLE_MQ135    = true; 
 const bool ENABLE_BLE      = true; 
+const bool USE_MOCK_DATA   = true; // Set to true to use mock data instead of real sensors 
 
 // 電源軌腳位
 const int PIN_RAIL_2 = 25; 

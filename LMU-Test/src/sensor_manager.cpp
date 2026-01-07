@@ -1,5 +1,6 @@
 #include "sensor_manager.h"
 #include "config.h"
+#include "mock_data.h"
 #include <Arduino.h>
 #include <OneWire.h>
 
@@ -70,10 +71,19 @@ void sensors_read_gps(float* latitude, float* longitude) {
 SensorData sensors_read_all() {
     SensorData data;
     
-    data.temperature = sensors_read_temperature();
-    data.soundLevel = sensors_read_sound();
-    data.airQuality = sensors_read_air_quality();
-    sensors_read_gps(&data.latitude, &data.longitude);
+    if (USE_MOCK_DATA) {
+        // Use mock data for all sensors
+        data.temperature = sensors_mock_temperature();
+        data.soundLevel = sensors_mock_sound();
+        data.airQuality = sensors_mock_air_quality();
+        sensors_mock_gps(&data.latitude, &data.longitude);
+    } else {
+        // Use real sensor readings
+        data.temperature = sensors_read_temperature();
+        data.soundLevel = sensors_read_sound();
+        data.airQuality = sensors_read_air_quality();
+        sensors_read_gps(&data.latitude, &data.longitude);
+    }
     
     return data;
 }

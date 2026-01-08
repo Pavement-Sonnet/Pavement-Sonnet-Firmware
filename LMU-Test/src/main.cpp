@@ -33,6 +33,9 @@ static bool potholeDetected = false;
 static float potholeLat = 0.0f;
 static float potholeLon = 0.0f;
 static unsigned long lastPotholeMark = 0;
+// Mock pothole timing when using mock data
+static unsigned long lastMockPotholeMs = 0;
+static unsigned long nextMockPotholeIntervalMs = 20000;
 
 struct RoadState {
   uint8_t score;
@@ -95,10 +98,26 @@ static RoadState analyze_road_condition() {
   return state;
 }
 
+// Generate occasional mock potholes at irregular intervals, tied to current GPS
+static void mock_pothole_tick(const SensorData& data, unsigned long nowMs) {
+  if (nowMs - lastMockPotholeMs >= nextMockPotholeIntervalMs) {
+    potholeDetected = true;
+    potholeLat = data.latitude;
+    potholeLon = data.longitude;
+    lastMockPotholeMs = nowMs;
+    // Next event in 10–30 seconds, irregular
+    nextMockPotholeIntervalMs = 10000 + random(0, 20001);
+  }
+}
+
 void setup() {
   Serial.begin(115200);
   while (!Serial) { delay(10); }
   Serial.println("\n=== ESP32 WiFi & BLE Test ===");
+
+  if (USE_MOCK_DATA) {
+    randomSeed(micros());
+  }
 
   // 1. 電源軌初始化 (Power Rails Init)
   power_init();
@@ -198,6 +217,9 @@ void loop() {
     lastPublish = now;
 
     SensorData data = sensors_read_all();
+    if (USE_MOCK_DATA) {
+      mock_pothole_tick(data, now);
+    }
     RoadState road = analyze_road_condition();
 
     char gpsBuf[256];

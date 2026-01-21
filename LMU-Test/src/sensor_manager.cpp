@@ -67,6 +67,19 @@ void sensors_read_gps(float* latitude, float* longitude) {
     gps.f_get_position(latitude, longitude);
 }
 
+// Read GPS speed in km/h
+float sensors_read_gps_speed() {
+    if (!ENABLE_GPS) return 0.0;
+    
+    // Process incoming GPS data
+    while (gpsSerial.available() > 0) {
+        gps.encode(gpsSerial.read());
+    }
+    
+    // TinyGPS returns speed in knots, convert to km/h (1 knot ≈ 1.852 km/h)
+    return gps.f_speed_kmph();
+}
+
 SensorData sensors_read_all() {
     SensorData data;
     

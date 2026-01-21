@@ -16,6 +16,11 @@
 #include "mpu_manager.h"
 #include "sensor_manager.h"
 
+// ESP-NOW functions (implemented in esp_now.cpp)
+extern void espnow_setup();
+extern void espnow_loop();
+extern void espnow_mark_brake();
+
 // 全域變數
 static unsigned long lastPublish = 0;
 
@@ -32,6 +37,11 @@ static bool potholeDetected = false;
 static float potholeLat = 0.0f;
 static float potholeLon = 0.0f;
 static unsigned long lastPotholeMark = 0;
+
+// Speed detection settings
+static const float SPEED_THRESHOLD_KMH = 5.0f; // Alert if speed drops below 5 km/h
+static unsigned long lastSpeedMark = 0;
+static const unsigned long SPEED_DEBOUNCE_MS = 1000; // Ignore speed changes within 1 second
 
 struct RoadState {
   uint8_t score;
@@ -94,6 +104,17 @@ static RoadState analyze_road_condition() {
   return state;
 }
 
+// Check speed from GPS and trigger alert if below threshold
+static void check_speed_alert(float speedKmh) {
+  unsigned long now = millis();
+  if (speedKmh < SPEED_THRESHOLD_KMH && (now - lastSpeedMark) > SPEED_DEBOUNCE_MS) {
+    lastSpeedMark = now;
+    Serial.printf("[Speed] Low speed detected: %.2f km/h (threshold: %.2f km/h)\n", speedKmh, SPEED_THRESHOLD_KMH);
+    // Trigger ESP-NOW speed warning (reuse brake as "slow speed" alert)
+    espnow_mark_brake();
+  }
+}
+
 void setup() {
   Serial.begin(115200);
   while (!Serial) { delay(10); }
@@ -101,6 +122,9 @@ void setup() {
 
   // 1. 電源軌初始化 (Power Rails Init)
   power_init();
+
+  // 1b. ESP-NOW initialization
+  espnow_setup();
 
   // 2. 按鈕腳位設定
   pinMode(buttonPin, INPUT_PULLUP);
@@ -124,6 +148,9 @@ void setup() {
 void loop() {
   mqtt_loop();
 
+  //ESP-NOW handling
+  espnow_loop();
+
   // 連續收集加速度並即時檢查坑洞
   unsigned long now = millis();
   if (ENABLE_MPU && (now - lastAccelSample >= ACCEL_SAMPLE_INTERVAL_MS)) {
@@ -141,8 +168,16 @@ void loop() {
         potholeDetected = true;
         sensors_read_gps(&potholeLat, &potholeLon);
         Serial.printf("[Road] Pothole spike detected (%.2fg) @ GPS: %.6f, %.6f\n", magG, potholeLat, potholeLon);
+        // Treat pothole as a brake event for ESP-NOW side
+        espnow_mark_brake();
       }
     }
+  }
+
+  // Speed check from GPS (if enabled)
+  if (ENABLE_GPS) {
+    float currentSpeedKmh = sensors_read_gps_speed();
+    check_speed_alert(currentSpeedKmh);
   }
 
   // Deep Sleep Check

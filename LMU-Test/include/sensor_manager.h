@@ -32,4 +32,7 @@ int sensors_read_air_quality();
 // 讀取 GPS 數據
 void sensors_read_gps(float* latitude, float* longitude);
 
+// 讀取 GPS 速度 (km/h)
+float sensors_read_gps_speed();
+
 #endif // SENSOR_MANAGER_H

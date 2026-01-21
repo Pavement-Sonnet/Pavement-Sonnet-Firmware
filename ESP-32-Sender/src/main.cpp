@@ -20,6 +20,7 @@ char recvMsg[32] = {0};
 char recvMsgBuffer[32] = {0};  // Double buffer to prevent corruption
 unsigned long recvDisplayUntil = 0;
 SemaphoreHandle_t recvMsgMutex = NULL;
+TaskHandle_t displayTaskHandle = NULL;
 
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   Serial.print("Last Packet Send Status: ");
@@ -43,6 +44,11 @@ void OnDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
     recvDisplayActive = true;
     xSemaphoreGive(recvMsgMutex);
   }
+  
+  // Notify display task to update LCD immediately
+  if (displayTaskHandle != NULL) {
+    xTaskNotifyFromISR(displayTaskHandle, 1, eSetBits, NULL);
+  }
 }
 
 static void setIdleScreen() {
@@ -56,25 +62,6 @@ static void sendBroadcastAndShow(const char* text) {
   uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
   esp_err_t result = esp_now_send(broadcastAddress, (uint8_t*)&myData, sizeof(myData));
   Serial.println(result == ESP_OK ? "Sent!" : "Error");
-  
-  // Always show sent message for 1s
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("Sent:");
-  lcd.setCursor(0, 1);
-  lcd.print(myData.msg);
-  delay(1000);
-
-  // If a receive display is still active, restore it; otherwise go idle
-  if (recvDisplayActive && (millis() < recvDisplayUntil)) {
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("Warning:");
-    lcd.setCursor(0, 1);
-    lcd.print(recvMsg);
-  } else {
-    setIdleScreen();
-  }
 }
 
 void setup() {
@@ -82,6 +69,9 @@ void setup() {
   
   // Create mutex for thread-safe message buffer
   recvMsgMutex = xSemaphoreCreateMutex();
+  
+  // Store the current task handle so ESP-NOW callback can notify us
+  displayTaskHandle = xTaskGetCurrentTaskHandle();
   
   // Set device as Wi-Fi Station
   WiFi.mode(WIFI_STA);
@@ -121,8 +111,11 @@ void setup() {
 }
 
 void loop() {
+  // Check for notifications immediately without blocking
+  uint32_t notificationValue = ulTaskNotifyTake(pdTRUE, 0);
+  
   // Check if a new receive message needs to be displayed
-  if (recvMsgReady) {
+  if (recvMsgReady || notificationValue) {
     recvMsgReady = false;
     // Copy from buffer to display variable safely
     if (xSemaphoreTake(recvMsgMutex, pdMS_TO_TICKS(10)) == pdTRUE) {

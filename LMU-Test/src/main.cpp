@@ -20,6 +20,7 @@
 extern void espnow_setup();
 extern void espnow_loop();
 extern void espnow_mark_brake();
+extern void espnow_mark_slow_speed();
 
 // 全域變數
 static unsigned long lastPublish = 0;
@@ -110,8 +111,8 @@ static void check_speed_alert(float speedKmh) {
   if (speedKmh < SPEED_THRESHOLD_KMH && (now - lastSpeedMark) > SPEED_DEBOUNCE_MS) {
     lastSpeedMark = now;
     Serial.printf("[Speed] Low speed detected: %.2f km/h (threshold: %.2f km/h)\n", speedKmh, SPEED_THRESHOLD_KMH);
-    // Trigger ESP-NOW speed warning (reuse brake as "slow speed" alert)
-    espnow_mark_brake();
+    // Trigger ESP-NOW slow speed warning (different from brake/pothole)
+    espnow_mark_slow_speed();
   }
 }
 

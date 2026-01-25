@@ -76,7 +76,7 @@ static uint8_t compute_road_score(float sampleRateHz) {
   }
 
   // 以經驗值進行簡單映射
-  const float REF_ENERGY = 8000.0f; // 可視路況微調
+  const float REF_ENERGY = 8000.0f; // 實地測試時微調
   float norm = bandEnergy / REF_ENERGY;
   if (norm > 1.0f) norm = 1.0f;
   if (norm < 0.0f) norm = 0.0f;

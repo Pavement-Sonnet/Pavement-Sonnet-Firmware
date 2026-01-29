@@ -7,8 +7,8 @@
 #define WIFI_PASS "1123581321"
 
 // Broker can be your PC running Mosquitto (use PC IP) or a remote broker
-#define MQTT_BROKER_IP "172.20.10.5"
-#define MQTT_BROKER_PORT 1884
+#define MQTT_BROKER_IP "test.mosquitto.org"
+#define MQTT_BROKER_PORT 1883
 
 // Client ID and optional credentials (leave empty strings for no auth)
 #define MQTT_CLIENT_ID "esp32_client"
@@ -18,8 +18,8 @@
 // Topics
 #define MQTT_TOPIC_SUB "test/esp32/in"
 #define MQTT_TOPIC_PUB "test/esp32/out"
-#define MQTT_TOPIC_GPS "sensors/gps"
-#define MQTT_TOPIC_ACCEL "sensors/accel"
-#define MQTT_TOPIC_SENSORS "sensors/data"
+#define MQTT_TOPIC_GPS "esp32/test_device/sensors/gps"
+#define MQTT_TOPIC_ACCEL "esp32/test_device/sensors/accel"
+#define MQTT_TOPIC_SENSORS "esp32/test_device/sensors/data"
 
 #endif // MQTT_CONFIG_H

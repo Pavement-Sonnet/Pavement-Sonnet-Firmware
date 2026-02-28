@@ -3,6 +3,11 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
+#define I2C_SDA 21
+#define I2C_SCL 22
+
+TwoWire I2CPort = TwoWire(0);  // Create a new I2C port
+
 typedef struct struct_message {
   char msg[32];
 } struct_message;
@@ -87,6 +92,7 @@ void espnow_setup() {
   WiFi.mode(WIFI_STA);
 
   // Init LCD
+  // I2CPort.begin(I2C_SDA, I2C_SCL);
   lcd.begin();
   lcd.backlight();
   lcd.clear();

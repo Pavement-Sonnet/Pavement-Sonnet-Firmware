@@ -12,6 +12,8 @@ const bool ENABLE_GPS      = true;
 const bool ENABLE_SOUND    = true; 
 const bool ENABLE_MQ135    = true; 
 const bool ENABLE_BLE      = true; 
+const bool ENABLE_SDA = true;
+const bool ENABLE_SCL = true;
 
 // 電源軌腳位
 const int PIN_RAIL_2 = 25; 
@@ -22,6 +24,8 @@ const int POWER_STABILIZE_DELAY = 500;
 // 感測器腳位
 #define RXD2 16
 #define TXD2 17
+#define Sda 19
+#define Scl 18
 #define GPS_BAUD 9600
 #define tempPin 32
 #define soundPin 35

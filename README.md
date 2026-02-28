@@ -16,5 +16,3 @@
 |GPIO 34|MQ135 AOUT|Caution: UnderVolt the signal to 3.3V|
 |GPIO 35|SIG-Sound|Analog|
 |GPIO 14|Int-IMU|Accelrameter WakeUp|
-
-### Sensor Pins

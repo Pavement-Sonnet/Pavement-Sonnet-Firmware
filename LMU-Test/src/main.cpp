@@ -15,6 +15,7 @@
 #include "power_manager.h"
 #include "mpu_manager.h"
 #include "sensor_manager.h"
+#include "lcd_manager.h"
 
 // 全域變數
 static unsigned long lastPublish = 0;
@@ -119,6 +120,9 @@ void setup() {
 
   // 6. MPU 初始化
   mpu_init();
+
+  // 7. LCD 初始化
+  lcd_init();
 }
 
 void loop() {
@@ -146,33 +150,35 @@ void loop() {
   }
 
   // Deep Sleep Check
-  if (millis() > RUN_TIME_MS) {
-    Serial.println("Time's up! Sleep...");
+  // if (millis() > RUN_TIME_MS) {
+  //   Serial.println("Time's up! Sleep...");
 
-    // 1. Rail 1 處理: 透過 I2C 指令進入低功耗模式
-    if (ENABLE_MPU) mpu_setup_wom_low_power();
+  //   // 1. Rail 1 處理: 透過 I2C 指令進入低功耗模式
+  //   if (ENABLE_MPU) mpu_setup_wom_low_power();
     
-    // 2. 切斷其他電源軌
-    power_shutdown_rails();
+  //   // 2. 切斷其他電源軌
+  //   power_shutdown_rails();
 
-    // Check Later:
-    // 注意: GPIO 在 Deep Sleep 時會變成高阻抗(Floating)狀態
-    // 如果你的 MOSFET 需要持續的 LOW 來保持關閉，你可能需要在 Gate 端加一個下拉電阻(Pull-down resistor)
-    // 這樣當 ESP32 睡著(腳位放開)時，電阻會把 Gate 拉低，確保 MOSFET 關閉。
+  //   // Check Later:
+  //   // 注意: GPIO 在 Deep Sleep 時會變成高阻抗(Floating)狀態
+  //   // 如果你的 MOSFET 需要持續的 LOW 來保持關閉，你可能需要在 Gate 端加一個下拉電阻(Pull-down resistor)
+  //   // 這樣當 ESP32 睡著(腳位放開)時，電阻會把 Gate 拉低，確保 MOSFET 關閉。
 
-    Serial.println("[System] Entering Deep Sleep");
-    Serial.flush(); // 確保訊息印完
+  //   Serial.println("[System] Entering Deep Sleep");
+  //   Serial.flush(); // 確保訊息印完
 
-    esp_sleep_enable_timer_wakeup(SLEEP_TIME_SEC * uS_TO_S_FACTOR);
-    esp_sleep_enable_ext0_wakeup((gpio_num_t)mpuIntPin, 0); 
-    esp_deep_sleep_start();
-  }
+  //   esp_sleep_enable_timer_wakeup(SLEEP_TIME_SEC * uS_TO_S_FACTOR);
+  //   esp_sleep_enable_ext0_wakeup((gpio_num_t)mpuIntPin, 0); 
+  //   esp_deep_sleep_start();
+  // }
 
   // ================= BLE Button Trigger Logic =================
   ble_handle_button();
 
   // Data Collection & Print
   static unsigned long lastPrint = 0;
+  static unsigned long lastLcdUpdate = 0;
+  
   if (millis() - lastPrint > 1000) {
     SensorData data = sensors_read_all();
     
@@ -180,6 +186,13 @@ void loop() {
       data.temperature, ble_get_status_string(), data.soundLevel, data.airQuality, 
       data.latitude, data.longitude);
     lastPrint = millis();
+  }
+  
+  // 更新 LCD 顯示 GPS 資訊（每 2 秒）
+  if (ENABLE_LCD && millis() - lastLcdUpdate > 2000) {
+    GpsDiagnostics gpsInfo = sensors_get_gps_diagnostics();
+    lcd_update_gps(gpsInfo.satellites, gpsInfo.fixAge, gpsInfo.latitude, gpsInfo.longitude, gpsInfo.hasFix);
+    lastLcdUpdate = millis();
   }
 
   // MQTT Publish + 路況分析，每 15 秒

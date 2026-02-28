@@ -14,6 +14,16 @@ struct SensorData {
     float longitude;
 };
 
+// GPS 診斷資訊結構
+struct GpsDiagnostics {
+    int satellites;
+    unsigned long fixAge;
+    float latitude;
+    float longitude;
+    bool hasFix;
+    int charsRead;
+};
+
 // 初始化所有感測器
 void sensors_init();
 
@@ -31,5 +41,8 @@ int sensors_read_air_quality();
 
 // 讀取 GPS 數據
 void sensors_read_gps(float* latitude, float* longitude);
+
+// 取得 GPS 診斷資訊
+GpsDiagnostics sensors_get_gps_diagnostics();
 
 #endif // SENSOR_MANAGER_H

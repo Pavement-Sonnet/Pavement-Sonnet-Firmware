@@ -1,4 +1,4 @@
-<img width="2880" height="1824" alt="圖片" src="https://github.com/user-attachments/assets/9e46fac2-5c8f-4f88-acbd-4c334b8e0413" /># Pavement-Sonnet-Pinout
+# Pavement-Sonnet-Pinout
 
 The following is the list of sensors and components utilized in this project, if you want to reproduce the project, please connect the components like this:
 
@@ -177,4 +177,7 @@ The following is the list of sensors and components utilized in this project, if
 |  |  |  |
 | **MOSFET S (Pin 3)** | **External Power Supply Negative (-)** | The common convergence point for all ground connections. |
 | **ESP32 GND** | **External Power Supply Negative (-)** | **"Common Ground"** connection. Essential for operation. |
+
+### MQ135 Signal Step-Down
+<img width="1024" height="559" alt="StepDown" src="https://github.com/user-attachments/assets/7d25ff27-f2a3-4e48-808d-bce03abf3ca9" />
 

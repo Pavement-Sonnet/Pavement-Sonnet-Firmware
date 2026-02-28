@@ -1,4 +1,4 @@
-# Pavement-Sonnet-Pinout
+<img width="2880" height="1824" alt="圖片" src="https://github.com/user-attachments/assets/9e46fac2-5c8f-4f88-acbd-4c334b8e0413" /># Pavement-Sonnet-Pinout
 
 The following is the list of sensors and components utilized in this project, if you want to reproduce the project, please connect the components like this:
 
@@ -159,3 +159,22 @@ The following is the list of sensors and components utilized in this project, if
 * Du-Pont Wires (Jumper Cables)
 
 ---
+
+### MOSFET Connection
+<img width="1647" height="980" alt="MOSFET" src="https://github.com/user-attachments/assets/e171a122-be68-45d4-8205-140af52b6540" />
+
+### **Table: MOSFET Wiring List**
+
+| Component & Pin | Connection Destination | Notes & Function |
+| --- | --- | --- |
+| **MOSFET G (Pin 1)** | One end of Resistor **R1** ($220\Omega$) | **R1** is a series current-limiting resistor used to protect the ESP32 GPIO. |
+| The other end of **R1** | **ESP32 GPIO Pin** (e.g., D4) | Control signal output from ESP32. |
+| **MOSFET G (Pin 1)** | One end of Resistor **R2** ($10k\Omega$) | **R2** acts as a pull-down resistor. |
+| The other end of **R2** | **MOSFET S (Pin 3)**, and connect to **GND** | Ensures the MOSFET remains OFF during ESP32 boot-up; bridges between G and S pins. |
+|  |  |  |
+| **MOSFET D (Pin 2)** | Device's **"R" Terminal** (Negative) | Controls the ground return path of the load device. |
+| Device's **"I" Terminal** | **External Power Supply Positive (+)** | Connects the device to the positive voltage source. |
+|  |  |  |
+| **MOSFET S (Pin 3)** | **External Power Supply Negative (-)** | The common convergence point for all ground connections. |
+| **ESP32 GND** | **External Power Supply Negative (-)** | **"Common Ground"** connection. Essential for operation. |
+

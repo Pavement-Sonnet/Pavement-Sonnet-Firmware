@@ -21,8 +21,8 @@ const int PIN_RAIL_4 = 27;
 const int POWER_STABILIZE_DELAY = 500;
 
 // 感測器腳位
-#define RXD2 16
-#define TXD2 17
+#define RXD2 17
+#define TXD2 16
 #define GPS_BAUD 9600
 // #define GPS_BAUD 115200  // TRY: 9600 if this doesn't work
 #define tempPin 32

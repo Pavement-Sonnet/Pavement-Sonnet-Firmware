@@ -28,11 +28,18 @@ static float accelBuf[ACCEL_BUF_SIZE];
 static size_t accelIndex = 0;
 static bool accelFilled = false;
 static unsigned long lastAccelSample = 0;
-static const float POTHOLE_TRIGGER_G = 3.5f; // 簡易坑洞門檻 (g)
+static const float POTHOLE_TRIGGER_G = 1.0f; // 簡易坑洞門檻 (g)
 static bool potholeDetected = false;
 static float potholeLat = 0.0f;
 static float potholeLon = 0.0f;
 static unsigned long lastPotholeMark = 0;
+
+// 移動偵測與休眠設定
+static const unsigned long NO_MOTION_SLEEP_TIME_MS = 180000; // 3 分鐘無移動進入休眠
+static const float MOTION_THRESHOLD_G = 0.15f; // 移動偵測閾值（g），過濾雜訊
+static const float GRAVITY_G = 1.0f; // 重力參考值 (g)
+static unsigned long lastMotionDetected = 0; // 最後一次偵測到移動的時間
+static float lastAccelMagG = GRAVITY_G; // 上一次的加速度大小，初始化為 1g
 
 struct RoadState {
   uint8_t score;
@@ -121,14 +128,16 @@ void setup() {
   // 6. MPU 初始化
   mpu_init();
 
-  // 7. LCD 初始化
+  // 7. 初始化移動偵測時間戳記
+  lastMotionDetected = millis();
+  Serial.println("[Sleep] Motion detection initialized. Will sleep after 3 minutes of no motion.");
   lcd_init();
 }
 
 void loop() {
   mqtt_loop();
 
-  // 連續收集加速度並即時檢查坑洞
+  // 連續收集加速度並即時檢查坑洞與移動狀態
   unsigned long now = millis();
   if (ENABLE_MPU && (now - lastAccelSample >= ACCEL_SAMPLE_INTERVAL_MS)) {
     lastAccelSample = now;
@@ -138,6 +147,13 @@ void loop() {
                         a.acceleration.y * a.acceleration.y +
                         a.acceleration.z * a.acceleration.z) / 9.80665f; // 轉為 g 值
       push_accel_sample(magG);
+
+      // 移動偵測：比較加速度變化量，過濾雜訊
+      float accelDelta = fabsf(magG - lastAccelMagG);
+      if (accelDelta >= MOTION_THRESHOLD_G) {
+        lastMotionDetected = now;
+      }
+      lastAccelMagG = magG;
 
       // 坑洞偵測：瞬時大加速度
       if (magG >= POTHOLE_TRIGGER_G && (now - lastPotholeMark) > 500) {
@@ -150,8 +166,8 @@ void loop() {
   }
 
   // Deep Sleep Check
-  // if (millis() > RUN_TIME_MS) {
-  //   Serial.println("Time's up! Sleep...");
+  if (millis() > RUN_TIME_MS) {
+    Serial.println("Time's up! Sleep...");
 
   //   // 1. Rail 1 處理: 透過 I2C 指令進入低功耗模式
   //   if (ENABLE_MPU) mpu_setup_wom_low_power();
@@ -159,13 +175,13 @@ void loop() {
   //   // 2. 切斷其他電源軌
   //   power_shutdown_rails();
 
-  //   // Check Later:
-  //   // 注意: GPIO 在 Deep Sleep 時會變成高阻抗(Floating)狀態
-  //   // 如果你的 MOSFET 需要持續的 LOW 來保持關閉，你可能需要在 Gate 端加一個下拉電阻(Pull-down resistor)
-  //   // 這樣當 ESP32 睡著(腳位放開)時，電阻會把 Gate 拉低，確保 MOSFET 關閉。
+    // Check Later:
+    // 注意: GPIO 在 Deep Sleep 時會變成高阻抗(Floating)狀態
+    // 如果你的 MOSFET 需要持續的 LOW 來保持關閉，你可能需要在 Gate 端加一個下拉電阻(Pull-down resistor)
+    // 這樣當 ESP32 睡著(腳位放開)時，電阻會把 Gate 拉低，確保 MOSFET 關閉。
 
-  //   Serial.println("[System] Entering Deep Sleep");
-  //   Serial.flush(); // 確保訊息印完
+    Serial.println("[System] Entering Deep Sleep");
+    Serial.flush(); // 確保訊息印完
 
   //   esp_sleep_enable_timer_wakeup(SLEEP_TIME_SEC * uS_TO_S_FACTOR);
   //   esp_sleep_enable_ext0_wakeup((gpio_num_t)mpuIntPin, 0); 
